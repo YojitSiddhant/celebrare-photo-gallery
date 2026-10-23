@@ -1,11 +1,20 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
 import PhotoCard from './PhotoCard'
 import SearchBar from './SearchBar'
 import useFetchPhotos from '../hooks/useFetchPhotos'
+import favouritesReducer, {
+  FAVOURITES_STORAGE_KEY,
+  getInitialFavourites,
+} from '../reducers/favouritesReducer'
 
 function Gallery() {
   const { photos, loading, error } = useFetchPhotos()
   const [searchTerm, setSearchTerm] = useState('')
+  const [favouriteIds, dispatch] = useReducer(
+    favouritesReducer,
+    undefined,
+    getInitialFavourites,
+  )
 
   const handleSearchChange = useCallback((event) => {
     setSearchTerm(event.target.value)
@@ -22,6 +31,21 @@ function Gallery() {
       photo.author.toLowerCase().includes(normalizedSearch),
     )
   }, [photos, searchTerm])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        FAVOURITES_STORAGE_KEY,
+        JSON.stringify(favouriteIds),
+      )
+    } catch {
+      // Favourites remain available for the current session if storage is unavailable.
+    }
+  }, [favouriteIds])
+
+  const toggleFavourite = useCallback((photoId) => {
+    dispatch({ type: 'TOGGLE_FAVOURITE', photoId })
+  }, [])
 
   if (loading) {
     return (
@@ -52,7 +76,12 @@ function Gallery() {
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {filteredPhotos.map((photo) => (
-            <PhotoCard key={photo.id} photo={photo} />
+            <PhotoCard
+              key={photo.id}
+              photo={photo}
+              isFavourite={favouriteIds.includes(String(photo.id))}
+              onToggleFavourite={toggleFavourite}
+            />
           ))}
         </div>
       )}
