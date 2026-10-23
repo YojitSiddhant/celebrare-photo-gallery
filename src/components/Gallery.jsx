@@ -1,7 +1,27 @@
+import { useCallback, useMemo, useState } from 'react'
+import PhotoCard from './PhotoCard'
+import SearchBar from './SearchBar'
 import useFetchPhotos from '../hooks/useFetchPhotos'
 
 function Gallery() {
   const { photos, loading, error } = useFetchPhotos()
+  const [searchTerm, setSearchTerm] = useState('')
+
+  const handleSearchChange = useCallback((event) => {
+    setSearchTerm(event.target.value)
+  }, [])
+
+  const filteredPhotos = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase()
+
+    if (!normalizedSearch) {
+      return photos
+    }
+
+    return photos.filter((photo) =>
+      photo.author.toLowerCase().includes(normalizedSearch),
+    )
+  }, [photos, searchTerm])
 
   if (loading) {
     return (
@@ -25,17 +45,17 @@ function Gallery() {
   }
 
   return (
-    <div className="grid gap-6 sm:grid-cols-2">
-      {photos.map((photo) => (
-        <article key={photo.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-          <img
-            className="aspect-square w-full object-cover"
-            src={photo.download_url}
-            alt={`Photograph by ${photo.author}`}
-          />
-          <p className="px-4 py-3 text-sm font-medium text-slate-700">{photo.author}</p>
-        </article>
-      ))}
+    <div>
+      <SearchBar value={searchTerm} onChange={handleSearchChange} />
+      {filteredPhotos.length === 0 ? (
+        <p className="py-12 text-center text-slate-600">No photos found.</p>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {filteredPhotos.map((photo) => (
+            <PhotoCard key={photo.id} photo={photo} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
